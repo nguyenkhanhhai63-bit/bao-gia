@@ -432,3 +432,89 @@ body.dark .toolbar{
     max-height:260px;
   }
 }
+
+
+/* ===== Footer nội bộ ===== */
+.footer{
+  margin-top:28px;
+  padding:22px 12px 10px;
+  text-align:center;
+  color:var(--muted);
+  font-size:12px;
+  line-height:1.5;
+}
+
+.footer-divider{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:12px;
+  margin-bottom:14px;
+}
+
+.footer-line{
+  display:block;
+  height:1px;
+  flex:1;
+  max-width:360px;
+  background:var(--line);
+}
+
+.footer-shield{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:28px;
+  height:28px;
+  border:2px solid var(--accent);
+  border-radius:9px 9px 12px 12px;
+  color:var(--accent);
+  font-size:15px;
+  font-weight:700;
+  line-height:1;
+}
+
+.footer-note{
+  font-size:13px;
+  color:var(--muted);
+  margin-bottom:10px;
+}
+
+.footer-credit{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:12px;
+  flex-wrap:wrap;
+  font-size:13px;
+  color:var(--muted);
+}
+
+.footer-credit strong{
+  color:var(--accent);
+  font-weight:700;
+}
+
+.footer-sep{
+  opacity:.6;
+}
+
+@media(max-width:560px){
+  .footer{
+    padding-left:8px;
+    padding-right:8px;
+  }
+
+  .footer-note{
+    font-size:12px;
+  }
+
+  .footer-credit{
+    gap:8px;
+    font-size:12px;
+  }
+
+  .footer-line{
+    max-width:120px;
+  }
+}

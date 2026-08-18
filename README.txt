@@ -18,3 +18,13 @@ styles.css
 app.js
 config.js
 markup.js
+
+
+BẢN V6 - FOOTER NỘI BỘ
+- Bỏ dòng "Giá có thể thay đổi..."
+- Thêm thông báo:
+  "Thông tin chỉ dành cho nội bộ. Vui lòng không chia sẻ ra bên ngoài."
+- Thêm:
+  "© 2026 Tạo bởi haimmo | noibo.sieudidong.vn"
+- haimmo được làm nổi bật.
+- Giữ nguyên toàn bộ tính năng V5.
