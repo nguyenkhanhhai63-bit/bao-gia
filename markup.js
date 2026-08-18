@@ -7,7 +7,7 @@
 // Không cần đổi ?v= và không cần khách F5.
 
 window.PRICE_MARKUP_CONFIG = {
-  DEFAULT_MARKUP: 500,
+  DEFAULT_MARKUP: 100,
 
   MODEL_MARKUP: {
 
