@@ -28,3 +28,12 @@ BẢN V6 - FOOTER NỘI BỘ
   "© 2026 Tạo bởi haimmo | noibo.sieudidong.vn"
 - haimmo được làm nổi bật.
 - Giữ nguyên toàn bộ tính năng V5.
+
+
+BẢN V7 - LOAD NHANH
+- Lưu bảng giá gần nhất trong trình duyệt để lần mở sau hiện gần như ngay lập tức.
+- Sau khi hiện cache, website cập nhật dữ liệu mới ở nền.
+- Không còn chớp "Không tìm thấy sản phẩm" trong lúc đang tải.
+- markup.js và Google Sheet được tải song song thay vì tuần tự.
+- Nếu mạng chậm/lỗi tạm thời, vẫn giữ bảng giá gần nhất thay vì trắng trang.
+- Tự cập nhật mỗi 60 giây như cũ.
