@@ -2,7 +2,7 @@
 // Đơn vị: nghìn đồng.
 // 500 = +500.000đ
 
-const DEFAULT_MARKUP = 500;
+const DEFAULT_MARKUP = 100;
 
 // Muốn cộng riêng từng model thì ghi ở đây.
 // Ví dụ:
