@@ -37,3 +37,11 @@ BẢN V7 - LOAD NHANH
 - markup.js và Google Sheet được tải song song thay vì tuần tự.
 - Nếu mạng chậm/lỗi tạm thời, vẫn giữ bảng giá gần nhất thay vì trắng trang.
 - Tự cập nhật mỗi 60 giây như cũ.
+
+
+BẢN V8 - FOOTER FINAL
+Footer:
+© 2026 Tạo bởi haimmo | Internal Price System
+
+Đã bỏ domain ở footer.
+Giữ nguyên toàn bộ tính năng load nhanh, cache, tìm kiếm và tự cập nhật lãi.

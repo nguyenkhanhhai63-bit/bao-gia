@@ -518,8 +518,6 @@ body.dark .toolbar{
     max-width:120px;
   }
 }
-
-
 /* ===== Load nhanh / giữ dữ liệu cũ khi refresh ===== */
 .loading{
   position:relative;
