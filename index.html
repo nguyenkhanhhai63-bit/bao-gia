@@ -7,28 +7,41 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <title>Báo giá Siêu Di Động</title>
-  <link rel="stylesheet" href="styles.css?v=20260818-0957">
+  <link rel="stylesheet" href="styles.css?v=20260818-1010">
 </head>
 <body>
   <main class="page">
     <header class="topbar">
       <div>
         <h1 id="priceDate">PS / Báo giá</h1>
-        <div id="syncStatus" class="sync-status">Đang đồng bộ giá nguồn...</div>
+        <div id="syncStatus" class="sync-status">Đang cập nhật...</div>
       </div>
-      <label class="theme-toggle"><input id="themeToggle" type="checkbox"> Giao diện tối</label>
+
+      <label class="theme-toggle">
+        <input id="themeToggle" type="checkbox">
+        <span>Giao diện tối</span>
+      </label>
     </header>
+
+    <section class="toolbar">
+      <input id="searchInput" class="search-input" type="search" placeholder="Tìm tên máy..." autocomplete="off">
+      <div id="brandFilters" class="brand-filters"></div>
+      <label class="compact-toggle">
+        <input id="onlyPriced" type="checkbox" checked>
+        <span>Chỉ hiện hàng có giá</span>
+      </label>
+    </section>
 
     <section id="priceGrid" class="price-grid">
       <div class="loading">Đang tải bảng giá...</div>
     </section>
 
     <footer class="footer">
-      Giá máy được cập nhật tự động từ bảng giá nguồn và đã cộng lợi nhuận theo cấu hình.
+      Giá máy được cập nhật thường xuyên. Vui lòng liên hệ xác nhận giá và tình trạng hàng trước khi đến cửa hàng.
     </footer>
   </main>
 
-  <script src="config.js?v=20260818-0957"></script>
-  <script src="app.js?v=20260818-0957"></script>
+  <script src="config.js?v=20260818-1010"></script>
+  <script src="app.js?v=20260818-1010"></script>
 </body>
 </html>

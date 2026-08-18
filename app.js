@@ -3,6 +3,12 @@ const grid = document.getElementById("priceGrid");
 const priceDate = document.getElementById("priceDate");
 const syncStatus = document.getElementById("syncStatus");
 const themeToggle = document.getElementById("themeToggle");
+const searchInput = document.getElementById("searchInput");
+const brandFilters = document.getElementById("brandFilters");
+const onlyPriced = document.getElementById("onlyPriced");
+
+let ALL_PRODUCTS = [];
+let ACTIVE_BRAND = "Tất cả";
 
 function parseCSV(text){
   const rows=[]; let row=[],cell="",q=false;
@@ -13,11 +19,15 @@ function parseCSV(text){
     else if(c==','&&!q){row.push(cell);cell=""}
     else if((c=='\n'||c=='\r')&&!q){
       if(c=='\r'&&n=='\n')i++;
-      row.push(cell); if(row.some(x=>String(x).trim()!==""))rows.push(row);
+      row.push(cell);
+      if(row.some(x=>String(x).trim()!==""))rows.push(row);
       row=[];cell="";
     }else cell+=c;
   }
-  if(cell.length||row.length){row.push(cell);if(row.some(x=>String(x).trim()!==""))rows.push(row)}
+  if(cell.length||row.length){
+    row.push(cell);
+    if(row.some(x=>String(x).trim()!==""))rows.push(row)
+  }
   return rows;
 }
 
@@ -26,7 +36,6 @@ function fmtPrice(n){
 }
 
 function parsePrice(s){
-  // nguồn hiển thị kiểu 23.823 -> 23823 (nghìn đồng)
   const clean=String(s||"").trim().replace(/[^\d]/g,"");
   return clean ? Number(clean) : null;
 }
@@ -68,12 +77,26 @@ function storageSort(a,b){
   return f(a)-f(b);
 }
 
+function brandOf(name){
+  const s=name.toLowerCase();
+  if(s.includes("iqoo")) return "iQOO";
+  if(s.includes("x200") || s.includes("vivo")) return "vivo";
+  if(s.includes("oppo")) return "OPPO";
+  if(s.includes("oneplus")) return "OnePlus";
+  if(s.includes("honor")) return "HONOR";
+  if(s.includes("redmi") || s.includes("xiaomi") || s.startsWith("mi ")) return "Xiaomi";
+  return "Khác";
+}
+
 function buildProducts(data){
   const modelOrder=[];
   const map=new Map();
 
   for(const x of data){
-    if(!map.has(x.model)){map.set(x.model,new Map());modelOrder.push(x.model)}
+    if(!map.has(x.model)){
+      map.set(x.model,new Map());
+      modelOrder.push(x.model);
+    }
     const mm=map.get(x.model);
     if(!mm.has(x.mem)) mm.set(x.mem,[]);
     mm.get(x.mem).push([x.color,x.price]);
@@ -81,52 +104,116 @@ function buildProducts(data){
 
   return modelOrder.map(name=>({
     name,
+    brand:brandOf(name),
     variants:[...map.get(name).entries()]
       .sort((a,b)=>storageSort(a[0],b[0]))
-      .map(([storage,rows])=>({storage,rows:rows.sort((a,b)=>a[0].localeCompare(b[0],"vi"))}))
+      .map(([storage,rows])=>({
+        storage,
+        rows:rows.sort((a,b)=>a[0].localeCompare(b[0],"vi"))
+      }))
   }));
 }
 
-function chunk(a,n=3){const o=[];for(let i=0;i<a.length;i+=n)o.push(a.slice(i,i+n));return o}
+function renderBrandFilters(products){
+  const brands=["Tất cả", ...new Set(products.map(p=>p.brand))];
+  brandFilters.innerHTML="";
 
-function renderProduct(p){
-  const t=document.createElement("table");t.className="product-table";
-  const vs=p.variants.map(v=>({...v,lines:chunk(v.rows,3)}));
-  const total=vs.reduce((s,v)=>s+v.lines.length,0);let printed=false;
-
-  for(const v of vs){
-    v.lines.forEach((line,k)=>{
-      const tr=document.createElement("tr");
-      if(!printed){
-        const th=document.createElement("th");th.className="product-name";th.rowSpan=total;th.textContent=p.name;tr.appendChild(th);printed=true;
-      }
-      if(k===0){
-        const td=document.createElement("td");td.className="variant";td.rowSpan=v.lines.length;td.textContent=v.storage;tr.appendChild(td);
-      }
-      for(let i=0;i<3;i++){
-        const td=document.createElement("td");td.className="color-cell";
-        const item=line[i];
-        if(item){
-          td.append(document.createTextNode(item[0]+" "));
-          const s=document.createElement("span");s.className="price";s.textContent=item[1];td.appendChild(s);
-        }else td.innerHTML='<span class="empty">.</span>';
-        tr.appendChild(td);
-      }
-      t.appendChild(tr);
+  brands.forEach(brand=>{
+    const btn=document.createElement("button");
+    btn.className="brand-btn"+(brand===ACTIVE_BRAND?" active":"");
+    btn.textContent=brand;
+    btn.addEventListener("click",()=>{
+      ACTIVE_BRAND=brand;
+      renderBrandFilters(ALL_PRODUCTS);
+      applyFilters();
     });
-  }
-  return t;
+    brandFilters.appendChild(btn);
+  });
 }
 
-function render(products){
+function renderProductCard(product){
+  const card=document.createElement("article");
+  card.className="product-card";
+
+  const title=document.createElement("div");
+  title.className="product-title";
+  title.textContent=product.name;
+  card.appendChild(title);
+
+  product.variants.forEach(v=>{
+    const block=document.createElement("section");
+    block.className="variant-block";
+
+    const head=document.createElement("div");
+    head.className="variant-head";
+
+    const badge=document.createElement("span");
+    badge.className="storage-badge";
+    badge.textContent=v.storage;
+    head.appendChild(badge);
+
+    block.appendChild(head);
+
+    const vg=document.createElement("div");
+    vg.className="variant-grid";
+
+    v.rows.forEach(([color,price])=>{
+      if(onlyPriced.checked && !price) return;
+
+      const cell=document.createElement("div");
+      cell.className="price-cell";
+
+      const c=document.createElement("div");
+      c.className="color";
+      c.textContent=color;
+
+      const p=document.createElement("span");
+      p.className="price";
+      p.textContent=price;
+
+      cell.appendChild(c);
+      cell.appendChild(p);
+      vg.appendChild(cell);
+    });
+
+    if(vg.children.length){
+      block.appendChild(vg);
+      card.appendChild(block);
+    }
+  });
+
+  return card;
+}
+
+function renderProducts(products){
   grid.innerHTML="";
-  const split=Math.ceil(products.length/1.8);
-  const groups=[products.slice(0,split),products.slice(split)];
-  for(const group of groups){
-    const c=document.createElement("div");c.className="column";
-    group.forEach(p=>c.appendChild(renderProduct(p)));
-    grid.appendChild(c);
+
+  if(!products.length){
+    grid.innerHTML='<div class="error-box">Không tìm thấy sản phẩm phù hợp.</div>';
+    return;
   }
+
+  const split=Math.ceil(products.length/2);
+  const groups=[products.slice(0,split),products.slice(split)];
+
+  groups.forEach(group=>{
+    const col=document.createElement("div");
+    col.className="column";
+    group.forEach(p=>col.appendChild(renderProductCard(p)));
+    grid.appendChild(col);
+  });
+}
+
+function applyFilters(){
+  const q=searchInput.value.trim().toLowerCase();
+
+  const filtered=ALL_PRODUCTS.filter(p=>{
+    const brandOk=ACTIVE_BRAND==="Tất cả" || p.brand===ACTIVE_BRAND;
+    const searchOk=!q || p.name.toLowerCase().includes(q);
+    return brandOk && searchOk;
+  });
+
+  renderProducts(filtered);
 }
 
 async function load(){
@@ -134,22 +221,32 @@ async function load(){
     const url=`https://docs.google.com/spreadsheets/d/${SOURCE_SHEET_ID}/gviz/tq?tqx=out:csv&tq&gid=${SOURCE_GID}&range=A:D&headers=1&_=${Date.now()}`;
     const res=await fetch(url,{cache:"no-store"});
     if(!res.ok)throw new Error("HTTP "+res.status);
+
     const data=normalizeData(parseCSV(await res.text()));
-    if(!data.length)throw new Error("Không lấy được giá từ nguồn.");
-    render(buildProducts(data));
+    if(!data.length)throw new Error("Không lấy được bảng giá.");
+
+    ALL_PRODUCTS=buildProducts(data);
+    renderBrandFilters(ALL_PRODUCTS);
+    applyFilters();
 
     const now=new Date();
     priceDate.textContent=`PS / Báo giá ngày: ${now.toLocaleDateString("vi-VN")}`;
-    syncStatus.textContent=`Đã lấy giá nguồn và cộng lãi lúc ${now.toLocaleTimeString("vi-VN")} • Mặc định +${DEFAULT_MARKUP}K`;
+    syncStatus.textContent=`Cập nhật lúc ${now.toLocaleTimeString("vi-VN")}`;
   }catch(e){
     console.error(e);
-    syncStatus.textContent="Lỗi đồng bộ: "+e.message;
-    grid.innerHTML=`<div class="error-box">Không tải được giá nguồn.<br>${e.message}</div>`;
+    syncStatus.textContent="Không thể cập nhật dữ liệu";
+    grid.innerHTML=`<div class="error-box">Không tải được bảng giá.<br>${e.message}</div>`;
   }
 }
 
+searchInput.addEventListener("input",applyFilters);
+onlyPriced.addEventListener("change",applyFilters);
+
 const saved=localStorage.getItem("price-theme");
-if(saved==="dark"){document.body.classList.add("dark");themeToggle.checked=true}
+if(saved==="dark"){
+  document.body.classList.add("dark");
+  themeToggle.checked=true;
+}
 themeToggle.addEventListener("change",()=>{
   document.body.classList.toggle("dark",themeToggle.checked);
   localStorage.setItem("price-theme",themeToggle.checked?"dark":"light");

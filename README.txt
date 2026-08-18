@@ -1,42 +1,20 @@
-BẢNG GIÁ TỰ ĐỘNG TỪ NGUỒN CŨ
+BẢN V2 - GIAO DIỆN KHÁCH HÀNG
 
-Website đọc trực tiếp dữ liệu nguồn của trang:
-https://quang1412.github.io/price_table_ps/?gid=731021545
+Nâng cấp:
+- Tìm kiếm tên máy.
+- Bộ lọc hãng.
+- Tên máy tách thành card.
+- Dung lượng dạng badge.
+- Màu và giá tách rõ.
+- Mobile chỉ 2 màu mỗi hàng.
+- Ẩn hoàn toàn thông tin nguồn và lợi nhuận.
+- Chỉ hiện "Cập nhật lúc ...".
+- Có nút "Chỉ hiện hàng có giá".
+- Giữ nguyên cơ chế tự lấy giá + cộng lợi nhuận trong config.js.
+- Có chống cache version mới.
 
-Không cần nhập lại giá.
-
-MẶC ĐỊNH:
-- cộng 500.000đ vào mọi giá nguồn.
-
-ĐỔI LÃI:
-Mở config.js và sửa:
-const DEFAULT_MARKUP = 500;
-
-Ví dụ:
-300 = +300.000đ
-500 = +500.000đ
-1000 = +1.000.000đ
-
-CỘNG RIÊNG TỪNG MODEL:
-const MODEL_MARKUP = {
-  "Mi 17 Ultra": 700,
-  "X200 Ultra": 400,
-};
-
-CỘNG THEO KHOẢNG GIÁ:
-Đổi USE_PRICE_TIERS = true và sửa PRICE_TIERS.
-
-UPLOAD:
-Thay 4 file trong GitHub repo bao-gia:
+Upload đè 4 file:
 index.html
 styles.css
-config.js
 app.js
-
-
-CHỐNG CACHE TRÌNH DUYỆT
-- Bản này đã thêm cache-busting version: 20260818-0957
-- index.html gọi styles.css, config.js, app.js kèm ?v=20260818-0957
-- Có thêm meta no-cache.
-- Upload đè 4 file: index.html, styles.css, config.js, app.js
-- Sau mỗi lần tôi làm bản code mới, version sẽ đổi để trình duyệt buộc tải file mới.
+config.js
