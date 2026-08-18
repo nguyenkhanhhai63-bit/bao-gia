@@ -1,95 +1,19 @@
-# Bảng giá GitHub tự cập nhật từ Google Sheet
+# Bảng giá ma trận
 
-Bạn chỉ sửa giá trong Google Sheet. Trang GitHub Pages sẽ tự lấy lại dữ liệu mỗi 60 giây.
+## Cấu trúc Google Sheet mới
+Các cột:
 
-## 1. Tạo Google Sheet
+Cột | Sản phẩm | Màu | 8/128 | 8/256 | 12/256 | 12/512 | 16/256 | 16/512 | 16/1T | Thứ tự | Ngày
 
-Mở file `Mau_Bang_Gia_Google_Sheet.xlsx` bằng Google Sheets.
+- Mỗi màu = 1 dòng.
+- Dung lượng = nằm ngang theo cột.
+- Giá = nhập tại giao điểm Màu × Dung lượng.
+- Cột / Sản phẩm / Thứ tự / Ngày chỉ cần nhập ở dòng đầu của mỗi máy.
+- Các dòng màu phía dưới có thể để trống những cột này.
+- Có thể thêm cột dung lượng mới trước cột `Thứ tự`; website tự nhận, không cần sửa code.
 
-Các cột BẮT BUỘC:
-
-| Cột | Ý nghĩa |
-|---|---|
-| Cột | `Trái` hoặc `Phải` |
-| Sản phẩm | Tên máy |
-| Dung lượng | RAM/ROM, ví dụ `12/256` |
-| Màu | Đen, Trắng, Green... |
-| Giá | Ví dụ `15.666` |
-| Thứ tự | Số để sắp xếp sản phẩm |
-| Ngày | Ví dụ `18/08/2026` |
-
-Mỗi màu là 1 dòng.
-
-## 2. Publish Google Sheet thành CSV
-
-Trong Google Sheets:
-
-`File` -> `Share` -> `Publish to web`
-
-- Chọn sheet: `Bảng giá`
-- Chọn định dạng: `Comma-separated values (.csv)`
-- Bấm `Publish`
-- Copy đường link được Google tạo.
-
-Lưu ý: đây là link Publish CSV, không phải link chỉnh sửa Google Sheet.
-
-## 3. Gắn link vào website
-
-Mở `config.js`.
-
-Thay:
-
-```js
-const SHEET_CSV_URL = "DAN_LINK_CSV_GOOGLE_SHEET_VAO_DAY";
-```
-
-bằng:
-
-```js
-const SHEET_CSV_URL = "LINK_CSV_BAN_VUA_COPY";
-```
-
-## 4. Upload lên GitHub
-
-Upload các file sau lên repository:
-
-- `index.html`
-- `styles.css`
-- `app.js`
-- `config.js`
-
-Vào:
-
-`Settings` -> `Pages` -> `Deploy from a branch`
-
-Chọn:
-- Branch: `main`
-- Folder: `/ (root)`
-
-## 5. Cách sử dụng hằng ngày
-
-Chỉ cần vào Google Sheet sửa:
-
-- giá
-- màu
-- dung lượng
-- sản phẩm
-- thứ tự
-- ngày báo giá
-
-KHÔNG cần vào GitHub sửa nữa.
-
-Trang báo giá tự kiểm tra dữ liệu Google Sheet mỗi 60 giây.
-
-## Thay đổi thời gian cập nhật
-
-Trong `config.js`:
-
-```js
-const AUTO_REFRESH_MS = 60000;
-```
-
-- `30000` = 30 giây
-- `60000` = 1 phút
-- `120000` = 2 phút
-- `300000` = 5 phút
+## Khi đổi Google Sheet sang mẫu này
+1. Dùng file `Mau_Bang_Gia_Ma_Tran.xlsx` hoặc sửa Sheet hiện tại theo đúng cấu trúc.
+2. Publish lại sheet `Bảng giá` thành CSV.
+3. Nếu URL publish thay đổi, cập nhật `config.js`.
+4. Trên GitHub chỉ cần thay file `app.js` bằng file mới trong bộ này.
