@@ -50,16 +50,20 @@ function formatPrice(value){
 }
 
 function markupFor(model,base){
-  if(Object.prototype.hasOwnProperty.call(MODEL_MARKUP,model)){
-    return Number(MODEL_MARKUP[model])||0;
+  const cfg = window.PRICE_MARKUP_CONFIG || {};
+  const modelMarkup = cfg.MODEL_MARKUP || {};
+
+  if(Object.prototype.hasOwnProperty.call(modelMarkup,model)){
+    return Number(modelMarkup[model])||0;
   }
 
-  if(USE_PRICE_TIERS){
-    const tier=PRICE_TIERS.find(x=>base>=x.min&&base<=x.max);
+  if(cfg.USE_PRICE_TIERS){
+    const tiers = Array.isArray(cfg.PRICE_TIERS) ? cfg.PRICE_TIERS : [];
+    const tier=tiers.find(x=>base>=x.min&&base<=x.max);
     if(tier) return Number(tier.add)||0;
   }
 
-  return Number(DEFAULT_MARKUP)||0;
+  return Number(cfg.DEFAULT_MARKUP)||0;
 }
 
 function normalizeData(rows){
@@ -271,8 +275,32 @@ function applyFilters(){
   renderProducts(filtered);
 }
 
+
+async function loadMarkupConfig(){
+  const url=`markup.js?t=${Date.now()}`;
+
+  const response=await fetch(url,{
+    cache:"no-store",
+    headers:{
+      "Cache-Control":"no-cache, no-store, must-revalidate",
+      "Pragma":"no-cache"
+    }
+  });
+
+  if(!response.ok){
+    throw new Error("Không tải được cấu hình giá bán.");
+  }
+
+  const code=await response.text();
+
+  // Chạy file cấu hình mới vừa tải.
+  // File này chỉ gán window.PRICE_MARKUP_CONFIG.
+  (0,eval)(code);
+}
+
 async function load(){
   try{
+    await loadMarkupConfig();
     const url=
       `https://docs.google.com/spreadsheets/d/${SOURCE_SHEET_ID}/gviz/tq`+
       `?tqx=out:csv&tq&gid=${SOURCE_GID}&range=A:D&headers=1&_=${Date.now()}`;
