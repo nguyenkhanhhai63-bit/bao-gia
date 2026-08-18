@@ -4,107 +4,129 @@ const priceDate = document.getElementById("priceDate");
 const syncStatus = document.getElementById("syncStatus");
 const themeToggle = document.getElementById("themeToggle");
 const searchInput = document.getElementById("searchInput");
-const brandFilters = document.getElementById("brandFilters");
 const onlyPriced = document.getElementById("onlyPriced");
 
 let ALL_PRODUCTS = [];
-let ACTIVE_BRAND = "Tất cả";
 
 function parseCSV(text){
   const rows=[]; let row=[],cell="",q=false;
+
   for(let i=0;i<text.length;i++){
     const c=text[i],n=text[i+1];
-    if(c=='"'&&q&&n=='"'){cell+='"';i++}
-    else if(c=='"'){q=!q}
-    else if(c==','&&!q){row.push(cell);cell=""}
-    else if((c=='\n'||c=='\r')&&!q){
-      if(c=='\r'&&n=='\n')i++;
+
+    if(c=='"'&&q&&n=='"'){
+      cell+='"'; i++;
+    }else if(c=='"'){
+      q=!q;
+    }else if(c==','&&!q){
+      row.push(cell); cell="";
+    }else if((c=='\n'||c=='\r')&&!q){
+      if(c=='\r'&&n=='\n') i++;
       row.push(cell);
-      if(row.some(x=>String(x).trim()!==""))rows.push(row);
-      row=[];cell="";
-    }else cell+=c;
+
+      if(row.some(x=>String(x).trim()!=="")) rows.push(row);
+
+      row=[]; cell="";
+    }else{
+      cell+=c;
+    }
   }
+
   if(cell.length||row.length){
     row.push(cell);
-    if(row.some(x=>String(x).trim()!==""))rows.push(row)
+    if(row.some(x=>String(x).trim()!=="")) rows.push(row);
   }
+
   return rows;
 }
 
-function fmtPrice(n){
-  return Math.round(n).toLocaleString("vi-VN").replaceAll(",", ".");
-}
-
-function parsePrice(s){
-  const clean=String(s||"").trim().replace(/[^\d]/g,"");
+function parsePrice(value){
+  const clean=String(value||"").trim().replace(/[^\d]/g,"");
   return clean ? Number(clean) : null;
 }
 
-function markupFor(model, base){
-  if(Object.prototype.hasOwnProperty.call(MODEL_MARKUP, model)){
+function formatPrice(value){
+  return Math.round(value).toLocaleString("vi-VN").replaceAll(",", ".");
+}
+
+function markupFor(model,base){
+  if(Object.prototype.hasOwnProperty.call(MODEL_MARKUP,model)){
     return Number(MODEL_MARKUP[model])||0;
   }
+
   if(USE_PRICE_TIERS){
-    const t=PRICE_TIERS.find(x=>base>=x.min&&base<=x.max);
-    if(t) return Number(t.add)||0;
+    const tier=PRICE_TIERS.find(x=>base>=x.min&&base<=x.max);
+    if(tier) return Number(tier.add)||0;
   }
+
   return Number(DEFAULT_MARKUP)||0;
 }
 
 function normalizeData(rows){
   if(rows.length<2) return [];
+
   const h=rows[0].map(x=>String(x).trim().toLowerCase());
-  const mi=h.indexOf("model"), memi=h.indexOf("mem"), ci=h.indexOf("color"), pi=h.indexOf("price");
-  if([mi,memi,ci,pi].some(i=>i<0)) throw new Error("Nguồn không đúng cấu trúc model/mem/color/price.");
+
+  const modelIndex=h.indexOf("model");
+  const memIndex=h.indexOf("mem");
+  const colorIndex=h.indexOf("color");
+  const priceIndex=h.indexOf("price");
+
+  if([modelIndex,memIndex,colorIndex,priceIndex].some(i=>i<0)){
+    throw new Error("Nguồn dữ liệu không đúng cấu trúc.");
+  }
 
   return rows.slice(1).map(r=>{
-    const model=String(r[mi]||"").trim();
-    const mem=String(r[memi]||"").trim();
-    const color=String(r[ci]||"").trim();
-    const base=parsePrice(r[pi]);
+    const model=String(r[modelIndex]||"").trim();
+    const mem=String(r[memIndex]||"").trim();
+    const color=String(r[colorIndex]||"").trim();
+    const base=parsePrice(r[priceIndex]);
+
     if(!model||!mem||!color||base===null) return null;
-    const add=markupFor(model,base);
-    return {model,mem,color,price:fmtPrice(base+add)};
+
+    return {
+      model,
+      mem,
+      color,
+      price:formatPrice(base+markupFor(model,base))
+    };
   }).filter(Boolean);
 }
 
 function storageSort(a,b){
-  const f=s=>{
+  const toNumber=s=>{
     const [ram,rom]=String(s).toLowerCase().split("/");
-    const rv=rom?.endsWith("t")?parseFloat(rom)*1024:parseFloat(rom);
-    return (parseFloat(ram)||0)*10000+(rv||0);
-  };
-  return f(a)-f(b);
-}
+    const romValue=rom?.endsWith("t")
+      ? parseFloat(rom)*1024
+      : parseFloat(rom);
 
-function brandOf(name){
-  const s=name.toLowerCase();
-  if(s.includes("iqoo")) return "iQOO";
-  if(s.includes("x200") || s.includes("vivo")) return "vivo";
-  if(s.includes("oppo")) return "OPPO";
-  if(s.includes("oneplus")) return "OnePlus";
-  if(s.includes("honor")) return "HONOR";
-  if(s.includes("redmi") || s.includes("xiaomi") || s.startsWith("mi ")) return "Xiaomi";
-  return "Khác";
+    return (parseFloat(ram)||0)*10000+(romValue||0);
+  };
+
+  return toNumber(a)-toNumber(b);
 }
 
 function buildProducts(data){
-  const modelOrder=[];
+  const order=[];
   const map=new Map();
 
-  for(const x of data){
-    if(!map.has(x.model)){
-      map.set(x.model,new Map());
-      modelOrder.push(x.model);
+  data.forEach(item=>{
+    if(!map.has(item.model)){
+      map.set(item.model,new Map());
+      order.push(item.model);
     }
-    const mm=map.get(x.model);
-    if(!mm.has(x.mem)) mm.set(x.mem,[]);
-    mm.get(x.mem).push([x.color,x.price]);
-  }
 
-  return modelOrder.map(name=>({
+    const modelMap=map.get(item.model);
+
+    if(!modelMap.has(item.mem)){
+      modelMap.set(item.mem,[]);
+    }
+
+    modelMap.get(item.mem).push([item.color,item.price]);
+  });
+
+  return order.map(name=>({
     name,
-    brand:brandOf(name),
     variants:[...map.get(name).entries()]
       .sort((a,b)=>storageSort(a[0],b[0]))
       .map(([storage,rows])=>({
@@ -114,73 +136,104 @@ function buildProducts(data){
   }));
 }
 
-function renderBrandFilters(products){
-  const brands=["Tất cả", ...new Set(products.map(p=>p.brand))];
-  brandFilters.innerHTML="";
+function colorDot(name){
+  const s=String(name||"").toLowerCase();
 
-  brands.forEach(brand=>{
-    const btn=document.createElement("button");
-    btn.className="brand-btn"+(brand===ACTIVE_BRAND?" active":"");
-    btn.textContent=brand;
-    btn.addEventListener("click",()=>{
-      ACTIVE_BRAND=brand;
-      renderBrandFilters(ALL_PRODUCTS);
-      applyFilters();
-    });
-    brandFilters.appendChild(btn);
-  });
+  if(s.includes("đen")||s.includes("black")) return "#111827";
+  if(s.includes("trắng")||s.includes("white")) return "#f8fafc";
+  if(s.includes("đỏ")||s.includes("red")) return "#ef233c";
+  if(s.includes("hồng")||s.includes("pink")) return "#ec6bb3";
+  if(s.includes("tím")||s.includes("purple")) return "#a855f7";
+  if(s.includes("xanh")||s.includes("green")) return "#65a30d";
+  if(s.includes("blue")) return "#2563eb";
+  if(s.includes("green")) return "#65a30d";
+  if(s.includes("bạc")||s.includes("silver")) return "#cbd5e1";
+  if(s.includes("titan")) return "#8b8f97";
+  if(s.includes("vàng")||s.includes("gold")) return "#d4a017";
+  if(s.includes("cam")||s.includes("orange")) return "#f97316";
+
+  return "#94a3b8";
 }
 
 function renderProductCard(product){
   const card=document.createElement("article");
   card.className="product-card";
 
-  const title=document.createElement("div");
-  title.className="product-title";
-  title.textContent=product.name;
-  card.appendChild(title);
+  const header=document.createElement("div");
+  header.className="product-header";
 
-  product.variants.forEach(v=>{
-    const block=document.createElement("section");
-    block.className="variant-block";
+  const name=document.createElement("div");
+  name.className="product-name";
+  name.textContent=product.name;
 
-    const head=document.createElement("div");
-    head.className="variant-head";
+  const chevron=document.createElement("div");
+  chevron.className="chevron";
+  chevron.textContent="⌄";
+
+  header.appendChild(name);
+  header.appendChild(chevron);
+
+  header.addEventListener("click",()=>{
+    card.classList.toggle("collapsed");
+  });
+
+  const body=document.createElement("div");
+  body.className="product-body";
+
+  product.variants.forEach(variant=>{
+    const row=document.createElement("section");
+    row.className="variant-row";
+
+    const storageWrap=document.createElement("div");
+    storageWrap.className="storage-wrap";
 
     const badge=document.createElement("span");
     badge.className="storage-badge";
-    badge.textContent=v.storage;
-    head.appendChild(badge);
+    badge.textContent=variant.storage;
 
-    block.appendChild(head);
+    storageWrap.appendChild(badge);
 
-    const vg=document.createElement("div");
-    vg.className="variant-grid";
+    const colors=document.createElement("div");
+    colors.className="colors-grid";
 
-    v.rows.forEach(([color,price])=>{
+    variant.rows.forEach(([color,price])=>{
       if(onlyPriced.checked && !price) return;
 
       const cell=document.createElement("div");
       cell.className="price-cell";
 
-      const c=document.createElement("div");
-      c.className="color";
-      c.textContent=color;
+      const colorLine=document.createElement("div");
+      colorLine.className="color-line";
 
-      const p=document.createElement("span");
-      p.className="price";
-      p.textContent=price;
+      const dot=document.createElement("span");
+      dot.className="color-dot";
+      dot.style.background=colorDot(color);
 
-      cell.appendChild(c);
-      cell.appendChild(p);
-      vg.appendChild(cell);
+      const label=document.createElement("span");
+      label.textContent=color;
+
+      colorLine.appendChild(dot);
+      colorLine.appendChild(label);
+
+      const priceEl=document.createElement("span");
+      priceEl.className="price";
+      priceEl.textContent=price;
+
+      cell.appendChild(colorLine);
+      cell.appendChild(priceEl);
+
+      colors.appendChild(cell);
     });
 
-    if(vg.children.length){
-      block.appendChild(vg);
-      card.appendChild(block);
+    if(colors.children.length){
+      row.appendChild(storageWrap);
+      row.appendChild(colors);
+      body.appendChild(row);
     }
   });
+
+  card.appendChild(header);
+  card.appendChild(body);
 
   return card;
 }
@@ -199,7 +252,11 @@ function renderProducts(products){
   groups.forEach(group=>{
     const col=document.createElement("div");
     col.className="column";
-    group.forEach(p=>col.appendChild(renderProductCard(p)));
+
+    group.forEach(product=>{
+      col.appendChild(renderProductCard(product));
+    });
+
     grid.appendChild(col);
   });
 }
@@ -207,10 +264,8 @@ function renderProducts(products){
 function applyFilters(){
   const q=searchInput.value.trim().toLowerCase();
 
-  const filtered=ALL_PRODUCTS.filter(p=>{
-    const brandOk=ACTIVE_BRAND==="Tất cả" || p.brand===ACTIVE_BRAND;
-    const searchOk=!q || p.name.toLowerCase().includes(q);
-    return brandOk && searchOk;
+  const filtered=ALL_PRODUCTS.filter(product=>{
+    return !q || product.name.toLowerCase().includes(q);
   });
 
   renderProducts(filtered);
@@ -218,38 +273,60 @@ function applyFilters(){
 
 async function load(){
   try{
-    const url=`https://docs.google.com/spreadsheets/d/${SOURCE_SHEET_ID}/gviz/tq?tqx=out:csv&tq&gid=${SOURCE_GID}&range=A:D&headers=1&_=${Date.now()}`;
+    const url=
+      `https://docs.google.com/spreadsheets/d/${SOURCE_SHEET_ID}/gviz/tq`+
+      `?tqx=out:csv&tq&gid=${SOURCE_GID}&range=A:D&headers=1&_=${Date.now()}`;
+
     const res=await fetch(url,{cache:"no-store"});
-    if(!res.ok)throw new Error("HTTP "+res.status);
+
+    if(!res.ok){
+      throw new Error("HTTP "+res.status);
+    }
 
     const data=normalizeData(parseCSV(await res.text()));
-    if(!data.length)throw new Error("Không lấy được bảng giá.");
+
+    if(!data.length){
+      throw new Error("Không lấy được bảng giá.");
+    }
 
     ALL_PRODUCTS=buildProducts(data);
-    renderBrandFilters(ALL_PRODUCTS);
     applyFilters();
 
     const now=new Date();
-    priceDate.textContent=`PS / Báo giá ngày: ${now.toLocaleDateString("vi-VN")}`;
-    syncStatus.textContent=`Cập nhật lúc ${now.toLocaleTimeString("vi-VN")}`;
-  }catch(e){
-    console.error(e);
+
+    priceDate.textContent=
+      `PS / BÁO GIÁ NGÀY: ${now.toLocaleDateString("vi-VN")}`;
+
+    syncStatus.textContent=
+      `Cập nhật lúc ${now.toLocaleTimeString("vi-VN")}`;
+
+  }catch(error){
+    console.error(error);
+
     syncStatus.textContent="Không thể cập nhật dữ liệu";
-    grid.innerHTML=`<div class="error-box">Không tải được bảng giá.<br>${e.message}</div>`;
+
+    grid.innerHTML=
+      `<div class="error-box">Không tải được bảng giá.<br>${error.message}</div>`;
   }
 }
 
 searchInput.addEventListener("input",applyFilters);
 onlyPriced.addEventListener("change",applyFilters);
 
-const saved=localStorage.getItem("price-theme");
-if(saved==="dark"){
+const savedTheme=localStorage.getItem("price-theme");
+
+if(savedTheme==="dark"){
   document.body.classList.add("dark");
   themeToggle.checked=true;
 }
+
 themeToggle.addEventListener("change",()=>{
   document.body.classList.toggle("dark",themeToggle.checked);
-  localStorage.setItem("price-theme",themeToggle.checked?"dark":"light");
+
+  localStorage.setItem(
+    "price-theme",
+    themeToggle.checked ? "dark" : "light"
+  );
 });
 
 load();

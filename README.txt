@@ -1,19 +1,20 @@
-BẢN V2 - GIAO DIỆN KHÁCH HÀNG
+BẢN V3 - GIAO DIỆN KHÁCH HÀNG
 
-Nâng cấp:
-- Tìm kiếm tên máy.
-- Bộ lọc hãng.
-- Tên máy tách thành card.
-- Dung lượng dạng badge.
-- Màu và giá tách rõ.
-- Mobile chỉ 2 màu mỗi hàng.
-- Ẩn hoàn toàn thông tin nguồn và lợi nhuận.
-- Chỉ hiện "Cập nhật lúc ...".
-- Có nút "Chỉ hiện hàng có giá".
-- Giữ nguyên cơ chế tự lấy giá + cộng lợi nhuận trong config.js.
-- Có chống cache version mới.
+Đã chỉnh theo yêu cầu:
+- Bỏ hoàn toàn ảnh máy.
+- Bỏ phân loại hãng.
+- Chỉ giữ ô tìm kiếm tên máy.
+- Card sản phẩm sạch, dễ đọc.
+- Dung lượng nằm riêng bên trái.
+- Màu + giá nằm bên phải.
+- Giá đỏ nổi bật.
+- Có chấm màu minh họa.
+- Có nút thu gọn từng model.
+- Mobile hiển thị 2 màu mỗi hàng.
+- Không hiển thị thông tin nguồn giá / mức cộng lãi.
+- Chống cache bằng version mới.
 
-Upload đè 4 file:
+Upload đè 4 file lên GitHub:
 index.html
 styles.css
 app.js
