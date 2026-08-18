@@ -60,3 +60,10 @@ BẢN V10
 - Tick "Chỉ hiện hàng có giá": ẩn biến thể không có giá.
 - Nếu cả sản phẩm không có bất kỳ giá nào: ẩn luôn toàn bộ sản phẩm.
 - Bỏ tick: hiện lại cả sản phẩm/biến thể chưa có giá.
+
+
+BẢN V11
+- Khi tick "Chỉ hiện hàng có giá":
+  + Ẩn dòng/biến thể không có giá.
+  + Nếu toàn bộ sản phẩm không có giá: ẩn cả khung và TÊN sản phẩm.
+- Khi bỏ tick: hiện lại sản phẩm chưa có giá.
