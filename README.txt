@@ -54,3 +54,9 @@ BẢN V9 - FIX "CHỈ HIỆN HÀNG CÓ GIÁ"
 - Tick: chỉ hiện hàng có giá.
 - Bỏ tick: hiện cả hàng chưa có giá, giá hiển thị dấu "—".
 - Đổi cache key để không dùng lại dữ liệu cũ đã bị lọc.
+
+
+BẢN V10
+- Tick "Chỉ hiện hàng có giá": ẩn biến thể không có giá.
+- Nếu cả sản phẩm không có bất kỳ giá nào: ẩn luôn toàn bộ sản phẩm.
+- Bỏ tick: hiện lại cả sản phẩm/biến thể chưa có giá.
