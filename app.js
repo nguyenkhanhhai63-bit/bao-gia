@@ -12,7 +12,7 @@ const toolbar = document.getElementById("toolbar");
 let ALL_PRODUCTS = [];
 let REFRESHING = false;
 
-const CACHE_KEY = "noibo-price-cache-v1";
+const CACHE_KEY = "noibo-price-cache-v2";
 const CACHE_MAX_AGE = 6 * 60 * 60 * 1000; // 6 giờ
 
 function parseCSV(text){
@@ -98,8 +98,17 @@ function normalizeData(rows){
     const mem=String(r[memIndex]||"").trim();
     const color=String(r[colorIndex]||"").trim();
     const base=parsePrice(r[priceIndex]);
-    if(!model||!mem||!color||base===null)return null;
-    return {model,mem,color,price:formatPrice(base+markupFor(model,base))};
+
+    // Vẫn giữ dòng sản phẩm/màu dù chưa có giá.
+    // Khi "Chỉ hiện hàng có giá" được bật thì giao diện mới ẩn các dòng này.
+    if(!model||!mem||!color)return null;
+
+    return {
+      model,
+      mem,
+      color,
+      price: base===null ? "" : formatPrice(base+markupFor(model,base))
+    };
   }).filter(Boolean);
 }
 
@@ -213,7 +222,8 @@ function renderProductCard(product){
 
       const priceEl=document.createElement("span");
       priceEl.className="price";
-      priceEl.textContent=price;
+      priceEl.textContent=price || "—";
+      if(!price) priceEl.classList.add("no-price");
 
       cell.append(colorLine,priceEl);
       colors.appendChild(cell);

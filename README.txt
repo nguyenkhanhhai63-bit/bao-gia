@@ -45,3 +45,12 @@ Footer:
 
 Đã bỏ domain ở footer.
 Giữ nguyên toàn bộ tính năng load nhanh, cache, tìm kiếm và tự cập nhật lãi.
+
+
+BẢN V9 - FIX "CHỈ HIỆN HÀNG CÓ GIÁ"
+- Trước đây app đã loại bỏ dòng không có giá ngay từ lúc đọc dữ liệu,
+  nên checkbox bật/tắt không thể làm chúng hiện lại.
+- Bản này giữ lại các sản phẩm/màu chưa có giá.
+- Tick: chỉ hiện hàng có giá.
+- Bỏ tick: hiện cả hàng chưa có giá, giá hiển thị dấu "—".
+- Đổi cache key để không dùng lại dữ liệu cũ đã bị lọc.
