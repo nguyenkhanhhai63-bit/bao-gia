@@ -1,15 +1,34 @@
-BẢN FIX ĐỒNG BỘ GOOGLE SHEET
+BẢNG GIÁ TỰ ĐỘNG TỪ NGUỒN CŨ
 
-Nguyên nhân:
-- Google Sheet của bạn đang Publish dưới dạng TSV.
-- Bản trước đọc CSV nên có thể không nhận dữ liệu.
+Website đọc trực tiếp dữ liệu nguồn của trang:
+https://quang1412.github.io/price_table_ps/?gid=731021545
 
-Cách sửa:
-1. Trên GitHub repo bao-gia, thay 2 file:
-   - app.js
-   - config.js
-2. Commit changes.
-3. Chờ GitHub Pages deploy khoảng 1 phút.
-4. Mở website và nhấn Ctrl + F5.
+Không cần nhập lại giá.
 
-Bản này dùng đúng link TSV của Google Sheet bạn gửi và tự nhận cả TSV/CSV.
+MẶC ĐỊNH:
+- cộng 500.000đ vào mọi giá nguồn.
+
+ĐỔI LÃI:
+Mở config.js và sửa:
+const DEFAULT_MARKUP = 500;
+
+Ví dụ:
+300 = +300.000đ
+500 = +500.000đ
+1000 = +1.000.000đ
+
+CỘNG RIÊNG TỪNG MODEL:
+const MODEL_MARKUP = {
+  "Mi 17 Ultra": 700,
+  "X200 Ultra": 400,
+};
+
+CỘNG THEO KHOẢNG GIÁ:
+Đổi USE_PRICE_TIERS = true và sửa PRICE_TIERS.
+
+UPLOAD:
+Thay 4 file trong GitHub repo bao-gia:
+index.html
+styles.css
+config.js
+app.js

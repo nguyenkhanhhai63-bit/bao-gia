@@ -1,31 +1,27 @@
 <!doctype html>
 <html lang="vi">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Báo giá Siêu Di Động</title>
-  <meta name="description" content="Bảng báo giá tự động lấy dữ liệu từ Google Sheet." />
-  <link rel="stylesheet" href="styles.css" />
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <main class="page">
     <header class="topbar">
       <div>
-        <h1 id="priceDate">PS / Báo giá ngày: đang tải...</h1>
-        <div id="syncStatus" class="sync-status">Đang lấy dữ liệu từ Google Sheet...</div>
+        <h1 id="priceDate">PS / Báo giá</h1>
+        <div id="syncStatus" class="sync-status">Đang đồng bộ giá nguồn...</div>
       </div>
-      <label class="theme-toggle">
-        <input id="themeToggle" type="checkbox" />
-        <span>Giao diện tối</span>
-      </label>
+      <label class="theme-toggle"><input id="themeToggle" type="checkbox"> Giao diện tối</label>
     </header>
 
-    <section id="priceGrid" class="price-grid" aria-label="Bảng báo giá">
+    <section id="priceGrid" class="price-grid">
       <div class="loading">Đang tải bảng giá...</div>
     </section>
 
     <footer class="footer">
-      Giá máy được cập nhật hằng ngày. Vui lòng liên hệ xác nhận giá và tình trạng hàng trước khi đến cửa hàng.
+      Giá máy được cập nhật tự động từ bảng giá nguồn và đã cộng lợi nhuận theo cấu hình.
     </footer>
   </main>
 
