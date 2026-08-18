@@ -5,6 +5,9 @@ const syncStatus = document.getElementById("syncStatus");
 const themeToggle = document.getElementById("themeToggle");
 const searchInput = document.getElementById("searchInput");
 const onlyPriced = document.getElementById("onlyPriced");
+const suggestions = document.getElementById("suggestions");
+const floatingSearch = document.getElementById("floatingSearch");
+const toolbar = document.getElementById("toolbar");
 
 let ALL_PRODUCTS = [];
 
@@ -22,9 +25,12 @@ function parseCSV(text){
       row.push(cell); cell="";
     }else if((c=='\n'||c=='\r')&&!q){
       if(c=='\r'&&n=='\n') i++;
+
       row.push(cell);
 
-      if(row.some(x=>String(x).trim()!=="")) rows.push(row);
+      if(row.some(x=>String(x).trim()!=="")){
+        rows.push(row);
+      }
 
       row=[]; cell="";
     }else{
@@ -34,7 +40,10 @@ function parseCSV(text){
 
   if(cell.length||row.length){
     row.push(cell);
-    if(row.some(x=>String(x).trim()!=="")) rows.push(row);
+
+    if(row.some(x=>String(x).trim()!=="")){
+      rows.push(row);
+    }
   }
 
   return rows;
@@ -49,18 +58,38 @@ function formatPrice(value){
   return Math.round(value).toLocaleString("vi-VN").replaceAll(",", ".");
 }
 
+async function loadMarkupConfig(){
+  const response=await fetch(`markup.js?t=${Date.now()}`,{
+    cache:"no-store",
+    headers:{
+      "Cache-Control":"no-cache, no-store, must-revalidate",
+      "Pragma":"no-cache"
+    }
+  });
+
+  if(!response.ok){
+    throw new Error("Không tải được cấu hình giá bán.");
+  }
+
+  const code=await response.text();
+  (0,eval)(code);
+}
+
 function markupFor(model,base){
-  const cfg = window.PRICE_MARKUP_CONFIG || {};
-  const modelMarkup = cfg.MODEL_MARKUP || {};
+  const cfg=window.PRICE_MARKUP_CONFIG||{};
+  const modelMarkup=cfg.MODEL_MARKUP||{};
 
   if(Object.prototype.hasOwnProperty.call(modelMarkup,model)){
     return Number(modelMarkup[model])||0;
   }
 
   if(cfg.USE_PRICE_TIERS){
-    const tiers = Array.isArray(cfg.PRICE_TIERS) ? cfg.PRICE_TIERS : [];
+    const tiers=Array.isArray(cfg.PRICE_TIERS)?cfg.PRICE_TIERS:[];
     const tier=tiers.find(x=>base>=x.min&&base<=x.max);
-    if(tier) return Number(tier.add)||0;
+
+    if(tier){
+      return Number(tier.add)||0;
+    }
   }
 
   return Number(cfg.DEFAULT_MARKUP)||0;
@@ -86,7 +115,9 @@ function normalizeData(rows){
     const color=String(r[colorIndex]||"").trim();
     const base=parsePrice(r[priceIndex]);
 
-    if(!model||!mem||!color||base===null) return null;
+    if(!model||!mem||!color||base===null){
+      return null;
+    }
 
     return {
       model,
@@ -100,6 +131,7 @@ function normalizeData(rows){
 function storageSort(a,b){
   const toNumber=s=>{
     const [ram,rom]=String(s).toLowerCase().split("/");
+
     const romValue=rom?.endsWith("t")
       ? parseFloat(rom)*1024
       : parseFloat(rom);
@@ -159,9 +191,18 @@ function colorDot(name){
   return "#94a3b8";
 }
 
+function isMobile(){
+  return window.matchMedia("(max-width: 900px)").matches;
+}
+
 function renderProductCard(product){
   const card=document.createElement("article");
   card.className="product-card";
+  card.dataset.model=product.name;
+
+  if(isMobile()){
+    card.classList.add("mobile-default-collapsed");
+  }
 
   const header=document.createElement("div");
   header.className="product-header";
@@ -178,7 +219,11 @@ function renderProductCard(product){
   header.appendChild(chevron);
 
   header.addEventListener("click",()=>{
-    card.classList.toggle("collapsed");
+    if(isMobile()){
+      card.classList.toggle("mobile-open");
+    }else{
+      card.classList.toggle("collapsed");
+    }
   });
 
   const body=document.createElement("div");
@@ -201,7 +246,9 @@ function renderProductCard(product){
     colors.className="colors-grid";
 
     variant.rows.forEach(([color,price])=>{
-      if(onlyPriced.checked && !price) return;
+      if(onlyPriced.checked && !price){
+        return;
+      }
 
       const cell=document.createElement("div");
       cell.className="price-cell";
@@ -250,8 +297,23 @@ function renderProducts(products){
     return;
   }
 
+  if(isMobile()){
+    const col=document.createElement("div");
+    col.className="column";
+
+    products.forEach(product=>{
+      col.appendChild(renderProductCard(product));
+    });
+
+    grid.appendChild(col);
+    return;
+  }
+
   const split=Math.ceil(products.length/2);
-  const groups=[products.slice(0,split),products.slice(split)];
+  const groups=[
+    products.slice(0,split),
+    products.slice(split)
+  ];
 
   groups.forEach(group=>{
     const col=document.createElement("div");
@@ -269,43 +331,75 @@ function applyFilters(){
   const q=searchInput.value.trim().toLowerCase();
 
   const filtered=ALL_PRODUCTS.filter(product=>{
-    return !q || product.name.toLowerCase().includes(q);
+    return !q||product.name.toLowerCase().includes(q);
   });
 
   renderProducts(filtered);
 }
 
+function updateSuggestions(){
+  const q=searchInput.value.trim().toLowerCase();
 
-async function loadMarkupConfig(){
-  const url=`markup.js?t=${Date.now()}`;
-
-  const response=await fetch(url,{
-    cache:"no-store",
-    headers:{
-      "Cache-Control":"no-cache, no-store, must-revalidate",
-      "Pragma":"no-cache"
-    }
-  });
-
-  if(!response.ok){
-    throw new Error("Không tải được cấu hình giá bán.");
+  if(!q){
+    suggestions.classList.remove("show");
+    suggestions.innerHTML="";
+    return;
   }
 
-  const code=await response.text();
+  const matches=ALL_PRODUCTS
+    .filter(p=>p.name.toLowerCase().includes(q))
+    .slice(0,10);
 
-  // Chạy file cấu hình mới vừa tải.
-  // File này chỉ gán window.PRICE_MARKUP_CONFIG.
-  (0,eval)(code);
+  suggestions.innerHTML="";
+
+  matches.forEach(product=>{
+    const btn=document.createElement("button");
+    btn.type="button";
+    btn.className="suggestion-item";
+    btn.textContent=product.name;
+
+    btn.addEventListener("click",()=>{
+      searchInput.value=product.name;
+      suggestions.classList.remove("show");
+      renderProducts([product]);
+
+      requestAnimationFrame(()=>{
+        const card=grid.querySelector(".product-card");
+
+        if(card){
+          if(isMobile()){
+            card.classList.add("mobile-open");
+          }
+
+          card.scrollIntoView({
+            behavior:"smooth",
+            block:"start"
+          });
+        }
+      });
+    });
+
+    suggestions.appendChild(btn);
+  });
+
+  if(matches.length){
+    suggestions.classList.add("show");
+  }else{
+    suggestions.classList.remove("show");
+  }
 }
 
 async function load(){
   try{
     await loadMarkupConfig();
+
     const url=
       `https://docs.google.com/spreadsheets/d/${SOURCE_SHEET_ID}/gviz/tq`+
       `?tqx=out:csv&tq&gid=${SOURCE_GID}&range=A:D&headers=1&_=${Date.now()}`;
 
-    const res=await fetch(url,{cache:"no-store"});
+    const res=await fetch(url,{
+      cache:"no-store"
+    });
 
     if(!res.ok){
       throw new Error("HTTP "+res.status);
@@ -338,8 +432,34 @@ async function load(){
   }
 }
 
-searchInput.addEventListener("input",applyFilters);
+searchInput.addEventListener("input",()=>{
+  applyFilters();
+  updateSuggestions();
+});
+
+searchInput.addEventListener("focus",()=>{
+  updateSuggestions();
+});
+
+document.addEventListener("click",event=>{
+  if(!event.target.closest(".search-wrap")){
+    suggestions.classList.remove("show");
+  }
+});
+
 onlyPriced.addEventListener("change",applyFilters);
+
+floatingSearch.addEventListener("click",()=>{
+  toolbar.scrollIntoView({
+    behavior:"smooth",
+    block:"start"
+  });
+
+  setTimeout(()=>{
+    searchInput.focus();
+    searchInput.select();
+  },350);
+});
 
 const savedTheme=localStorage.getItem("price-theme");
 
@@ -355,6 +475,10 @@ themeToggle.addEventListener("change",()=>{
     "price-theme",
     themeToggle.checked ? "dark" : "light"
   );
+});
+
+window.addEventListener("resize",()=>{
+  applyFilters();
 });
 
 load();
