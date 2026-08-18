@@ -32,3 +32,11 @@ index.html
 styles.css
 config.js
 app.js
+
+
+CHỐNG CACHE TRÌNH DUYỆT
+- Bản này đã thêm cache-busting version: 20260818-0957
+- index.html gọi styles.css, config.js, app.js kèm ?v=20260818-0957
+- Có thêm meta no-cache.
+- Upload đè 4 file: index.html, styles.css, config.js, app.js
+- Sau mỗi lần tôi làm bản code mới, version sẽ đổi để trình duyệt buộc tải file mới.
