@@ -7,7 +7,7 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <title>Báo giá Siêu Di Động</title>
-  <link rel="stylesheet" href="styles.css?v=20260818-1138">
+  <link rel="stylesheet" href="styles.css?v=20261112-compare1">
 </head>
 <body>
   <main class="page">
@@ -33,12 +33,18 @@
         <input id="onlyPriced" type="checkbox" checked>
         <span>Chỉ hiện hàng có giá</span>
       </label>
+      <div class="compare-controls">
+        <label>Biến động giá <select id="changeFilter"><option value="all">Tất cả</option><option value="up">↑ Tăng giá</option><option value="down">↓ Giảm giá</option><option value="same">Không đổi</option><option value="new">Chưa có dữ liệu so sánh</option></select></label>
+        <label>So với <select id="comparePeriod"><option value="previous">Lần cập nhật trước</option><option value="yesterday">Hôm qua</option><option value="7">7 ngày trước</option><option value="30">30 ngày trước</option></select></label>
+        <span id="changeSummary" class="change-summary"></span>
+      </div>
     </section>
 
     <section id="priceGrid" class="price-grid">
       <div class="loading">Đang tải bảng giá...</div>
     </section>
 
+    <dialog id="historyDialog" class="history-dialog"><div class="history-heading"><h2 id="historyTitle">Lịch sử giá</h2><button id="closeHistory" type="button" aria-label="Đóng">✕</button></div><div id="historyContent"></div></dialog>
     <button id="floatingSearch" class="floating-search" type="button" aria-label="Tìm máy">⌕</button>
 
     <footer class="footer">
@@ -60,7 +66,7 @@
     </footer>
   </main>
 
-  <script src="config.js?v=20260818-1138"></script>
-  <script src="app.js?v=20260818-1138"></script>
+  <script src="config.js?v=20261112-compare1"></script>
+  <script src="app.js?v=20261112-compare1"></script>
 </body>
 </html>

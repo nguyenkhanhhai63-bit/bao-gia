@@ -15,6 +15,58 @@ let REFRESHING = false;
 const CACHE_KEY = "noibo-price-cache-v2";
 const CACHE_MAX_AGE = 6 * 60 * 60 * 1000; // 6 giờ
 
+// Lịch sử lưu tại trình duyệt đang sử dụng, không đồng bộ giữa thiết bị.
+const HISTORY_KEY="ps-price-history-v1";
+const HISTORY_LIMIT=240;
+const changeFilter=document.getElementById("changeFilter");
+const comparePeriod=document.getElementById("comparePeriod");
+const changeSummary=document.getElementById("changeSummary");
+const historyDialog=document.getElementById("historyDialog");
+let PRICE_HISTORY=readHistory();
+function readHistory(){try{const v=JSON.parse(localStorage.getItem(HISTORY_KEY)||"[]");return Array.isArray(v)?v:[]}catch(_){return []}}
+function itemKey(model,mem,color){return JSON.stringify([model.trim().toLowerCase(),mem.trim().toLowerCase(),color.trim().toLowerCase()])}
+function snapshotMap(products){const map={};products.forEach(p=>p.variants.forEach(v=>v.rows.forEach(([c,price])=>{if(price){const n=parsePrice(price);if(n!==null)map[itemKey(p.name,v.storage,c)]=n}})));return map}
+function recordHistory(products){
+  const prices=snapshotMap(products),now=Date.now(),last=PRICE_HISTORY.at(-1);
+  if(last&&JSON.stringify(last.prices)===JSON.stringify(prices))return;
+  // Không ghi lại các lần tải trùng; giữ mọi lần giá thực sự thay đổi.
+  PRICE_HISTORY.push({time:now,prices});
+  if(PRICE_HISTORY.length>HISTORY_LIMIT)PRICE_HISTORY=PRICE_HISTORY.slice(-HISTORY_LIMIT);
+  try{localStorage.setItem(HISTORY_KEY,JSON.stringify(PRICE_HISTORY))}catch(e){console.warn("Không lưu được lịch sử giá",e)}
+}
+function baseline(){
+  const now=Date.now(),period=comparePeriod.value;
+  if(period==="previous")return PRICE_HISTORY.length>=2?PRICE_HISTORY[PRICE_HISTORY.length-2]:null;
+  const days=period==="yesterday"?1:Number(period);
+  const today=new Date();today.setHours(0,0,0,0);
+  const target=today.getTime()-days*86400000;
+  // Chọn bản ghi gần nhất không muộn hơn đầu ngày mốc.
+  return [...PRICE_HISTORY].reverse().find(x=>x.time<=target)||null;
+}
+function priceChange(model,storage,color,price){
+  if(!price)return {type:"new",delta:null};
+  const base=baseline(),key=itemKey(model,storage,color);
+  if(!base||!Object.prototype.hasOwnProperty.call(base.prices,key))return {type:"new",delta:null};
+  const delta=parsePrice(price)-base.prices[key];
+  return {type:delta>0?"up":delta<0?"down":"same",delta};
+}
+function showHistory(model,storage,color){
+  document.getElementById("historyTitle").textContent=`${model} · ${storage} · ${color}`;
+  const target=document.getElementById("historyContent");target.replaceChildren();
+  const key=itemKey(model,storage,color);
+  const rows=PRICE_HISTORY.filter(x=>Object.prototype.hasOwnProperty.call(x.prices,key)).reverse();
+  if(!rows.length){target.textContent="Chưa có lịch sử giá trên thiết bị này."}
+  else{
+    const note=document.createElement("p");note.className="history-note";note.textContent="Lịch sử giá ghi nhận trên trình duyệt này (mới nhất ở trên).";target.append(note);
+    rows.forEach((x,i)=>{const div=document.createElement("div");div.className="history-row";const date=document.createElement("span");date.textContent=new Date(x.time).toLocaleString("vi-VN");const value=document.createElement("strong");value.textContent=formatPrice(x.prices[key]);div.append(date,value);target.append(div)})
+  }
+  if(!historyDialog.open)historyDialog.showModal();
+}
+document.getElementById("closeHistory").addEventListener("click",()=>historyDialog.close());
+historyDialog.addEventListener("click",e=>{if(e.target===historyDialog)historyDialog.close()});
+changeFilter.addEventListener("change",applyFilters);
+comparePeriod.addEventListener("change",applyFilters);
+
 function parseCSV(text){
   const rows=[]; let row=[],cell="",q=false;
   for(let i=0;i<text.length;i++){
@@ -225,7 +277,18 @@ function renderProductCard(product){
       priceEl.textContent=price || "—";
       if(!price) priceEl.classList.add("no-price");
 
-      cell.append(colorLine,priceEl);
+      const change=priceChange(product.name,variant.storage,color,price);
+      if(changeFilter.value!=="all"&&change.type!==changeFilter.value)return;
+      if(price){
+        const trend=document.createElement("span");trend.className="price-trend trend-"+change.type;
+        trend.textContent=change.type==="up"?"↑ +"+formatPrice(change.delta):change.type==="down"?"↓ −"+formatPrice(Math.abs(change.delta)):change.type==="same"?"— Không đổi":"Mới";
+        cell.append(trend);
+        cell.classList.add("history-clickable");cell.title="Xem lịch sử giá";
+        cell.tabIndex=0;cell.setAttribute("role","button");
+        cell.addEventListener("click",()=>showHistory(product.name,variant.storage,color));
+        cell.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();showHistory(product.name,variant.storage,color)}});
+      }
+      cell.prepend(colorLine,priceEl);
       colors.appendChild(cell);
     });
 
@@ -241,6 +304,13 @@ function renderProductCard(product){
 
 function renderProducts(products){
   grid.innerHTML="";
+  let up=0,down=0,same=0,unknown=0;
+  products.forEach(p=>p.variants.forEach(v=>v.rows.forEach(([c,price])=>{
+    if(!price)return;
+    const type=priceChange(p.name,v.storage,c,price).type;
+    if(type==="up")up++;else if(type==="down")down++;else if(type==="same")same++;else unknown++;
+  })));
+  changeSummary.textContent=`↑ ${up} tăng · ↓ ${down} giảm · ${same} không đổi · ${unknown} chưa có mốc`;
   if(!products.length){
     grid.innerHTML='<div class="error-box">Không tìm thấy sản phẩm phù hợp.</div>';
     return;
@@ -350,6 +420,7 @@ async function refreshData(){
     if(!data.length)throw new Error("Không lấy được bảng giá.");
 
     ALL_PRODUCTS=buildProducts(data);
+    recordHistory(ALL_PRODUCTS);
     applyFilters();
     saveCache(ALL_PRODUCTS);
 
