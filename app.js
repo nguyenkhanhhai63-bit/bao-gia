@@ -17,7 +17,7 @@ const CACHE_MAX_AGE = 6 * 60 * 60 * 1000; // 6 giờ
 
 // Lịch sử lưu tại trình duyệt đang sử dụng, không đồng bộ giữa thiết bị.
 const HISTORY_KEY="ps-price-history-v1";
-const HISTORY_LIMIT=240;
+const HISTORY_LIMIT=1500;
 const changeFilter=document.getElementById("changeFilter");
 const comparePeriod=document.getElementById("comparePeriod");
 const changeSummary=document.getElementById("changeSummary");
@@ -31,17 +31,24 @@ function recordHistory(products){
   if(last&&JSON.stringify(last.prices)===JSON.stringify(prices))return;
   // Không ghi lại các lần tải trùng; giữ mọi lần giá thực sự thay đổi.
   PRICE_HISTORY.push({time:now,prices});
-  if(PRICE_HISTORY.length>HISTORY_LIMIT)PRICE_HISTORY=PRICE_HISTORY.slice(-HISTORY_LIMIT);
+  // Giữ bản ghi cuối mỗi ngày và các lần cập nhật gần đây để hạn chế đầy bộ nhớ.
+  if(PRICE_HISTORY.length>HISTORY_LIMIT){
+    const old=PRICE_HISTORY.slice(0,-500),keep=new Map();
+    old.forEach(x=>keep.set(localDay(x.time),x));
+    PRICE_HISTORY=[...keep.values(),...PRICE_HISTORY.slice(-500)];
+  }
   try{localStorage.setItem(HISTORY_KEY,JSON.stringify(PRICE_HISTORY))}catch(e){console.warn("Không lưu được lịch sử giá",e)}
 }
+function localDay(time){const d=new Date(time);return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;}
 function baseline(){
-  const now=Date.now(),period=comparePeriod.value;
+  const period=comparePeriod.value;
   if(period==="previous")return PRICE_HISTORY.length>=2?PRICE_HISTORY[PRICE_HISTORY.length-2]:null;
-  const days=period==="yesterday"?1:Number(period);
   const today=new Date();today.setHours(0,0,0,0);
-  const target=today.getTime()-days*86400000;
-  // Chọn bản ghi gần nhất không muộn hơn đầu ngày mốc.
-  return [...PRICE_HISTORY].reverse().find(x=>x.time<=target)||null;
+  const days=period==="yesterday"?1:Number(period);
+  const target=new Date(today);target.setDate(target.getDate()-days);
+  const key=localDay(target.getTime());
+  // Lấy giá ghi nhận cuối cùng trong đúng ngày được chọn, không dùng ngày khác thay thế.
+  return [...PRICE_HISTORY].reverse().find(x=>localDay(x.time)===key)||null;
 }
 function priceChange(model,storage,color,price){
   if(!price)return {type:"new",delta:null};
@@ -116,25 +123,6 @@ async function fetchText(url){
   }
 }
 
-async function fetchMarkupConfig(){
-  const code=await fetchText(`markup.js?t=${Date.now()}`);
-  (0,eval)(code);
-}
-
-function markupFor(model,base){
-  const cfg=window.PRICE_MARKUP_CONFIG||{};
-  const modelMarkup=cfg.MODEL_MARKUP||{};
-  if(Object.prototype.hasOwnProperty.call(modelMarkup,model)){
-    return Number(modelMarkup[model])||0;
-  }
-  if(cfg.USE_PRICE_TIERS){
-    const tiers=Array.isArray(cfg.PRICE_TIERS)?cfg.PRICE_TIERS:[];
-    const tier=tiers.find(x=>base>=x.min&&base<=x.max);
-    if(tier)return Number(tier.add)||0;
-  }
-  return Number(cfg.DEFAULT_MARKUP)||0;
-}
-
 function normalizeData(rows){
   if(rows.length<2)return [];
   const h=rows[0].map(x=>String(x).trim().toLowerCase());
@@ -159,7 +147,7 @@ function normalizeData(rows){
       model,
       mem,
       color,
-      price: base===null ? "" : formatPrice(base+markupFor(model,base))
+      price: base===null ? "" : formatPrice(base)
     };
   }).filter(Boolean);
 }
@@ -333,6 +321,48 @@ function renderProducts(products){
   });
 }
 
+const dailyPanel=document.getElementById("dailyPanel");
+const dailyDown=document.getElementById("dailyDown");
+const dailyUp=document.getElementById("dailyUp");
+const dailyDate=document.getElementById("dailyDate");
+const dailyDetail=document.getElementById("dailyDetail");
+let dailyTab="down";
+function renderDailyDashboard(){
+  if(!dailyPanel)return;
+  const today=new Date();today.setHours(0,0,0,0);
+  const yesterday=new Date(today);yesterday.setDate(yesterday.getDate()-1);
+  const base=[...PRICE_HISTORY].reverse().find(x=>localDay(x.time)===localDay(yesterday.getTime()));
+  dailyDate.textContent=`${yesterday.toLocaleDateString("vi-VN")} → ${new Date().toLocaleDateString("vi-VN")}`;
+  const changed=[];
+  if(base){ALL_PRODUCTS.forEach(p=>p.variants.forEach(v=>v.rows.forEach(([color,price])=>{
+    const key=itemKey(p.name,v.storage,color);
+    if(!price||!Object.prototype.hasOwnProperty.call(base.prices,key))return;
+    const now=parsePrice(price),before=base.prices[key],delta=now-before;
+    if(delta!==0)changed.push({model:p.name,storage:v.storage,color,now,before,delta});
+  })));}
+  const down=changed.filter(x=>x.delta<0).sort((a,b)=>a.delta-b.delta);
+  const up=changed.filter(x=>x.delta>0).sort((a,b)=>b.delta-a.delta);
+  dailyDown.textContent=`↓ ${down.length} giảm giá`;
+  dailyUp.textContent=`↑ ${up.length} tăng giá`;
+  dailyPanel.querySelectorAll("[data-daily-tab]").forEach(btn=>{
+    btn.classList.toggle("active",btn.dataset.dailyTab===dailyTab);
+    btn.setAttribute("aria-pressed",String(btn.dataset.dailyTab===dailyTab));
+  });
+  dailyDetail.replaceChildren();
+  if(!base){const msg=document.createElement("p");msg.className="daily-empty";msg.textContent="Chưa có dữ liệu giá ngày hôm qua trên trình duyệt này. Hệ thống sẽ tự ghi nhận giá từ hôm nay để so sánh vào ngày mai.";dailyDetail.append(msg);return;}
+  const rows=dailyTab==="down"?down:up;
+  if(!rows.length){const msg=document.createElement("p");msg.className="daily-empty";msg.textContent=dailyTab==="down"?"Không có phiên bản nào giảm giá so với hôm qua.":"Không có phiên bản nào tăng giá so với hôm qua.";dailyDetail.append(msg);return;}
+  const table=document.createElement("table");table.className="daily-table";
+  const head=document.createElement("thead");const hr=document.createElement("tr");
+  ["Máy / dung lượng / màu","Hôm qua","Hôm nay","Chênh lệch"].forEach(t=>{const th=document.createElement("th");th.textContent=t;hr.append(th)});head.append(hr);table.append(head);
+  const body=document.createElement("tbody");
+  rows.forEach(x=>{const tr=document.createElement("tr");
+    const values=[`${x.model} · ${x.storage} · ${x.color}`,formatPrice(x.before),formatPrice(x.now),`${x.delta<0?"↓ −":"↑ +"}${formatPrice(Math.abs(x.delta))}`];
+    values.forEach((v,i)=>{const td=document.createElement("td");td.textContent=v;if(i===3)td.className=x.delta<0?"daily-decrease":"daily-increase";tr.append(td)});body.append(tr)});
+  table.append(body);dailyDetail.append(table);
+}
+dailyPanel.querySelectorAll("[data-daily-tab]").forEach(btn=>btn.addEventListener("click",()=>{dailyTab=btn.dataset.dailyTab;renderDailyDashboard()}));
+
 function applyFilters(){
   const q=searchInput.value.trim().toLowerCase();
   renderProducts(ALL_PRODUCTS.filter(p=>!q||p.name.toLowerCase().includes(q)));
@@ -391,6 +421,7 @@ function loadCache(){
 
     ALL_PRODUCTS=cached.products;
     applyFilters();
+    renderDailyDashboard();
 
     const saved=new Date(cached.savedAt);
     priceDate.textContent=`PS / BÁO GIÁ NGÀY: ${saved.toLocaleDateString("vi-VN")}`;
@@ -411,10 +442,7 @@ async function refreshData(){
       `https://docs.google.com/spreadsheets/d/${SOURCE_SHEET_ID}/gviz/tq`+
       `?tqx=out:csv&tq&gid=${SOURCE_GID}&range=A:D&headers=1&_=${Date.now()}`;
 
-    const [_,sourceText]=await Promise.all([
-      fetchMarkupConfig(),
-      fetchText(sourceUrl)
-    ]);
+    const sourceText=await fetchText(sourceUrl);
 
     const data=normalizeData(parseCSV(sourceText));
     if(!data.length)throw new Error("Không lấy được bảng giá.");
@@ -422,6 +450,7 @@ async function refreshData(){
     ALL_PRODUCTS=buildProducts(data);
     recordHistory(ALL_PRODUCTS);
     applyFilters();
+    renderDailyDashboard();
     saveCache(ALL_PRODUCTS);
 
     const now=new Date();

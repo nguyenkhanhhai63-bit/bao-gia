@@ -7,7 +7,7 @@
   <meta http-equiv="Pragma" content="no-cache">
   <meta http-equiv="Expires" content="0">
   <title>Báo giá Siêu Di Động</title>
-  <link rel="stylesheet" href="styles.css?v=20261112-compare1">
+  <link rel="stylesheet" href="styles.css?v=20261112-daily2">
 </head>
 <body>
   <main class="page">
@@ -40,6 +40,13 @@
       </div>
     </section>
 
+    <section id="dailyPanel" class="daily-panel" aria-label="Biến động giá theo ngày">
+      <div class="daily-heading"><div><h2>BIẾN ĐỘNG GIÁ HÔM NAY</h2><p>So sánh giá gốc cuối ngày hôm qua với giá hiện tại · <span id="dailyDate"></span></p></div></div>
+      <div class="daily-tabs"><button type="button" data-daily-tab="down" class="active" aria-pressed="true" id="dailyDown">↓ 0 giảm giá</button><button type="button" data-daily-tab="up" aria-pressed="false" id="dailyUp">↑ 0 tăng giá</button></div>
+      <div id="dailyDetail" class="daily-detail"></div>
+      <p class="daily-footnote">Theo dõi riêng từng tên máy, dung lượng và màu. Lịch sử lưu trên trình duyệt này; không đồng bộ giữa các thiết bị.</p>
+    </section>
+
     <section id="priceGrid" class="price-grid">
       <div class="loading">Đang tải bảng giá...</div>
     </section>
@@ -66,7 +73,7 @@
     </footer>
   </main>
 
-  <script src="config.js?v=20261112-compare1"></script>
-  <script src="app.js?v=20261112-compare1"></script>
+  <script src="config.js?v=20261112-daily2"></script>
+  <script src="app.js?v=20261112-daily2"></script>
 </body>
 </html>
